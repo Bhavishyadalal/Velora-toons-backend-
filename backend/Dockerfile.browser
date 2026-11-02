@@ -1,0 +1,10 @@
+# Optional: larger image and higher memory use, for dynamically loaded seasons.
+FROM python:3.12-slim
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PLAYWRIGHT_BROWSERS_PATH=/opt/browsers ENABLE_BROWSER_SEASONS=1
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt playwright==1.58.0 && python -m playwright install --with-deps chromium && useradd --create-home appuser && chmod -R a+rX /opt/browsers
+COPY --chown=appuser:appuser app ./app
+USER appuser
+EXPOSE 10000
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000} --no-access-log"]

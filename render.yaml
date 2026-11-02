@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: velora-toons-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: ENABLE_BROWSER_SEASONS
+        value: '0'
