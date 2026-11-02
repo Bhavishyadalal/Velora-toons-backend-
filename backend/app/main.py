@@ -7,7 +7,7 @@ import time
 from collections import OrderedDict, defaultdict, deque
 from contextlib import asynccontextmanager
 from urllib.parse import urlsplit
-from fastapi import FastAPI, Request, Query
+from fastapi import FastAPI, Request, Query, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from .network import Fetcher, SourceError
@@ -87,8 +87,9 @@ async def page(request,url):
             # Keep only a bounded set of per-key locks. Each lock is temporary metadata.
             if len(LOCKS)>100:LOCKS.clear()
 
-@app.get('/health')
-async def health():
+@app.api_route('/health',methods=['GET','HEAD'])
+async def health(response:Response):
+    response.headers['Cache-Control']='no-store'
     return {'status':'ok','service':'velora-toons','version':'1.0.0','media_proxy':False}
 
 @app.get('/api/catalog')

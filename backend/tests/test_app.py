@@ -88,6 +88,22 @@ def test_validation_and_bad_ids(client):
     assert client.get('/api/catalog?page_number=999').status_code==422
     assert client.get('/api/title/invalid').status_code==400
 
+def test_health_monitor_without_source_requests(client):
+    async def unexpected_fetch(url):
+        raise AssertionError('Health checks must not fetch source pages')
+    client.app.state.fetcher.get=unexpected_fetch
+    for _ in range(90):
+        client.get('/api/title/invalid')
+    assert client.get('/api/title/invalid').status_code==429
+    response=client.get('/health')
+    assert response.status_code==200
+    assert response.json()['status']=='ok'
+    assert response.headers['cache-control']=='no-store'
+    head=client.head('/health')
+    assert head.status_code==200
+    assert head.content==b''
+    assert head.headers['cache-control']=='no-store'
+
 def test_rate_limit(client):
     for _ in range(90):assert client.get('/api/title/invalid').status_code==400
     assert client.get('/api/title/invalid').status_code==429

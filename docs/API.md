@@ -1,6 +1,6 @@
 # API contract
 
-All endpoints are GET. The service never accepts an arbitrary URL for fetching. Content IDs are URL-safe base64 of an allowed source path. IDs are not secrets and must not be treated as authentication.
+All endpoints support GET. `/health` also supports HEAD for uptime monitors, returns `Cache-Control: no-store`, and checks only the running app without fetching source pages. Health checks are outside the metadata API rate limit. The service never accepts an arbitrary URL for fetching. Content IDs are URL-safe base64 of an allowed source path. IDs are not secrets and must not be treated as authentication.
 
 | Route | Parameters | Response |
 | --- | --- | --- |

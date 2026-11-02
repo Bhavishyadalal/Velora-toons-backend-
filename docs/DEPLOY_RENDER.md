@@ -1,5 +1,34 @@
 # Deploy the backend on Render
 
+## Quick setup for these two repositories
+
+1. Sign in to Render, connect GitHub, and allow access to `Bhavishyadalal/Velora-toons-backend-`.
+2. Choose **New → Blueprint**, select that backend repository and branch `main`. Render reads `render.yaml` from the repository root.
+3. Enter `ALLOWED_ORIGINS` as your actual frontend origin, such as `https://your-site.vercel.app`. Use no trailing path. If the frontend is not deployed yet, leave the local development origins (`http://localhost:5173,http://127.0.0.1:5173`) temporarily and replace them before connecting the hosted frontend.
+4. Review the service and plan before creating it. The blueprint requests a free Docker web service. Keep `ENABLE_BROWSER_SEASONS=0`. If Render does not offer that plan for your account, review its current options before choosing a paid service.
+5. Deploy and wait for **Live**. Open `https://YOUR-SERVICE.onrender.com/health`; expect HTTP 200 and `status: ok`. The root `/` is not a website and can return 404.
+6. Open `https://YOUR-SERVICE.onrender.com/api/catalog?kind=cartoon` and check that it returns real catalogue items. A successful health check alone does not verify the source.
+7. Share the public Render base URL and your public frontend URL with the coding assistant. No credentials are needed for this configuration. The frontend setting to update is `frontend/config.js` in `Bhavishyadalal/Velora-toons`, followed by a Vercel redeploy. Device settings in **Your space** override that file.
+
+For a manual **New → Web Service** instead, select the backend repository and `main`, choose Docker, leave Root Directory blank, use Dockerfile Path `backend/Dockerfile`, Docker Build Context Directory `backend`, and Health Check Path `/health`. Add the same environment variables above. Keep the Docker command default; no separate Python build/start command is needed. Set auto-deploy from `main` if desired.
+
+## External cron or uptime monitor
+
+Create an external HTTP check, for example in cron-job.org, with these settings:
+
+| Setting | Value |
+| --- | --- |
+| URL | `https://YOUR-SERVICE.onrender.com/health` |
+| Method | GET (HEAD is also supported) |
+| Schedule | Every 10 minutes (`*/10 * * * *` in five-field cron syntax) |
+| Success | HTTP 200; GET response contains `status: ok` |
+| Timeout | Allow up to 60 seconds if the monitoring service supports it |
+| Authentication/body | None |
+
+Enable failure alerts if offered. The endpoint performs no source request or video transfer, and sends `Cache-Control: no-store`. Do not poll `/api/catalog` or video providers just to keep the app awake. An external check runs independently of a closed website; browser timers and a cron process inside a sleeping Render service are not reliable wake-up mechanisms.
+
+Periodic requests may reduce idle sleeping if Render's current plan permits it. They consume service hours and cannot guarantee 24/7 uptime, recover exhausted quotas, or override Render's policies. Check [Render's current free-service limits](https://render.com/docs/free). For dependable availability, use a plan designed to stay running; even that is subject to provider outages. A healthy app can still have source or player failures.
+
 ## Recommended default: lightweight web service
 
 Push the complete repository first. In Render choose **New → Blueprint** and connect that repository. The root `render.yaml` defines a free-plan Docker **web service**, not a background worker. It uses:
