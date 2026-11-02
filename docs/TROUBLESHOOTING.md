@@ -22,3 +22,22 @@
 | Browser image won't build/run | Check supported Playwright version, container dependencies and host memory |
 
 Do not treat a 404, generic timeout, TLS problem, or network-policy denial as proof of bot detection. If a site explicitly requires verification, report that and stop automated attempts; do not add evasion loops.
+
+## Distinguishing API connectivity from source access
+
+API 1.0.1 preserves the upstream HTTP status on source errors. `/health` can be
+healthy while `/api/catalog` returns 502 because the external source refused it.
+
+- `source_auth_required`: HTTP 401, authentication required by the source.
+- `source_access_denied`: HTTP 403, access denied; this alone does not prove bot detection.
+- `source_rate_limited`: HTTP 429. Respect a returned retry_after delay.
+- `source_verification_required`: an explicit verification response was observed.
+
+The JSON error includes upstream_status, source_host and a request_id where
+available. Render warning logs use the same request_id. No HTML, cookies, source
+query strings or signed media URLs are returned or logged by this diagnostic.
+
+This change reports the actual cause; it does not remove source access controls.
+There is no automatic browser fallback for denied catalogue requests. Browser
+season mode still handles only normal dynamic season selection. If access is
+rejected, use an authorized source integration or open its public website.

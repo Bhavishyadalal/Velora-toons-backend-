@@ -40,7 +40,7 @@ async def lifespan(app):
     yield
     await app.state.fetcher.close()
 
-app=FastAPI(title='Velora Toons API',version='1.0.0',lifespan=lifespan)
+app=FastAPI(title='Velora Toons API',version='1.0.1',lifespan=lifespan)
 origins=[x.strip().rstrip('/') for x in os.getenv('ALLOWED_ORIGINS','http://localhost:5173,http://127.0.0.1:5173').split(',') if x.strip()]
 if '*' in origins:
     raise RuntimeError('Use explicit ALLOWED_ORIGINS, never a wildcard.')
@@ -67,7 +67,13 @@ async def limits(request:Request, call_next):
 @app.exception_handler(SourceError)
 async def source_error(request,exc):
     status=400 if exc.code in ('invalid_id','destination_blocked') else 502
-    return JSONResponse({'error':{'code':exc.code,'message':exc.message}},status)
+    error={'code':exc.code,'message':exc.message}
+    for name in ('upstream_status','source_host','retry_after','request_id'):
+        value=getattr(exc,name,None)
+        if value is not None:error[name]=value
+    headers={'Cache-Control':'no-store'}
+    if exc.retry_after is not None:headers['Retry-After']=str(exc.retry_after)
+    return JSONResponse({'error':error},status,headers=headers)
 
 async def page(request,url):
     now=time.monotonic()
@@ -90,7 +96,7 @@ async def page(request,url):
 @app.api_route('/health',methods=['GET','HEAD'])
 async def health(response:Response):
     response.headers['Cache-Control']='no-store'
-    return {'status':'ok','service':'velora-toons','version':'1.0.0','media_proxy':False}
+    return {'status':'ok','service':'velora-toons','version':'1.0.1','media_proxy':False}
 
 @app.get('/api/catalog')
 async def catalog(request:Request,kind:str=Query('cartoon',pattern='^(cartoon|anime|movies)$'),page_number:int=Query(1,ge=1,le=30),q:str=Query('',max_length=100)):
